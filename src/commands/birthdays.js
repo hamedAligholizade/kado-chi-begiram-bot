@@ -1,4 +1,5 @@
 const queries = require('../database/queries');
+const moment = require('moment-jalaali');
 
 const setBirthdayHandler = async (msg, bot, match) => {
   try {
@@ -7,18 +8,23 @@ const setBirthdayHandler = async (msg, bot, match) => {
     
     if (!dateStr) {
       return bot.sendMessage(msg.chat.id, 
-        'Please provide your birthday in YYYY-MM-DD format. Example: /setbirthday 1990-12-31');
+        'Please provide your birthday in Jalali format (YYYY-MM-DD). Example: /setbirthday 1370-06-15');
     }
 
-    // Validate date format
-    const date = new Date(dateStr);
-    if (isNaN(date.getTime())) {
+    // Validate Jalali date format
+    const [year, month, day] = dateStr.split('-').map(Number);
+    if (!moment.jIsValidJalaaliDate(year, month, day)) {
       return bot.sendMessage(msg.chat.id, 
-        'Invalid date format. Please use YYYY-MM-DD format. Example: /setbirthday 1990-12-31');
+        'Invalid Jalali date format. Please use YYYY-MM-DD format. Example: /setbirthday 1370-06-15');
     }
 
-    await queries.setBirthday(userId, dateStr);
-    await bot.sendMessage(msg.chat.id, '🎂 Your birthday has been set!');
+    // Convert Jalali to Gregorian for storage
+    const gregorianDate = moment(`${year}-${month}-${day}`, 'jYYYY-jMM-jDD').format('YYYY-MM-DD');
+    await queries.setBirthday(userId, gregorianDate);
+    
+    // Format the Jalali date for display
+    const formattedDate = moment(gregorianDate).format('jDD jMMMM jYYYY');
+    await bot.sendMessage(msg.chat.id, `🎂 Your birthday has been set to: ${formattedDate}`);
   } catch (error) {
     console.error('Error in setBirthday:', error);
     await bot.sendMessage(msg.chat.id, 'Sorry, there was an error processing your request.');
@@ -32,16 +38,11 @@ const getBirthdayHandler = async (msg, bot) => {
     
     if (!birthday) {
       return bot.sendMessage(msg.chat.id, 
-        'You haven\'t set your birthday yet. Use /setbirthday YYYY-MM-DD to set it!');
+        'You haven\'t set your birthday yet. Use /setbirthday YYYY-MM-DD to set it! (Example: 1370-06-15)');
     }
 
-    const date = new Date(birthday);
-    const formattedDate = date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-
+    // Convert Gregorian to Jalali for display
+    const formattedDate = moment(birthday).format('jDD jMMMM jYYYY');
     await bot.sendMessage(msg.chat.id, `🎂 Your birthday is set to: ${formattedDate}`);
   } catch (error) {
     console.error('Error in getBirthday:', error);

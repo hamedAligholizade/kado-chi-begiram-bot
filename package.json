@@ -9,10 +9,11 @@
   },
   "dependencies": {
     "dotenv": "^16.0.3",
+    "moment-jalaali": "^0.10.4",
     "node-telegram-bot-api": "^0.61.0",
     "pg": "^8.10.0"
   },
   "devDependencies": {
     "nodemon": "^2.0.22"
   }
-} 
+}

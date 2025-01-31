@@ -12,9 +12,14 @@ const {
 } = require('./commands/gifts');
 const {
   setBirthdayHandler,
-  getBirthdayHandler,
-  upcomingBirthdaysHandler
+  getBirthdayHandler
 } = require('./commands/birthdays');
+const {
+  addToWatchlistHandler,
+  removeFromWatchlistHandler,
+  listWatchlistHandler,
+  sendBirthdayReminders
+} = require('./commands/watchlist');
 
 async function startBot() {
   try {
@@ -42,10 +47,14 @@ Gift Management:
 /listgifts - See your gift preferences
 /suggest @username - Get gift suggestions for a friend
 
-Birthday Management:
-/setbirthday YYYY-MM-DD - Set your birthday
+Birthday Management (Using Jalali Calendar):
+/setbirthday YYYY-MM-DD - Set your birthday (Example: 1370-06-15)
 /birthday - See your birthday
-/upcoming - See upcoming birthdays in the next 7 days
+
+Watchlist Management:
+/watch @username - Add someone to your watchlist
+/unwatch @username - Remove someone from your watchlist
+/watchlist - See your watchlist
 
 Other Commands:
 /stats - See bot statistics
@@ -67,7 +76,11 @@ Other Commands:
     // Birthday-related commands
     bot.onText(/\/setbirthday (.+)/, (msg, match) => setBirthdayHandler(msg, bot, match));
     bot.onText(/\/birthday/, (msg) => getBirthdayHandler(msg, bot));
-    bot.onText(/\/upcoming/, (msg) => upcomingBirthdaysHandler(msg, bot));
+
+    // Watchlist commands
+    bot.onText(/\/watch (.+)/, (msg, match) => addToWatchlistHandler(msg, bot, match));
+    bot.onText(/\/unwatch (.+)/, (msg, match) => removeFromWatchlistHandler(msg, bot, match));
+    bot.onText(/\/watchlist/, (msg) => listWatchlistHandler(msg, bot));
 
     // Help command
     bot.onText(/\/help/, async (msg) => {
@@ -80,10 +93,14 @@ Gift Management:
 /listgifts - See your gift preferences
 /suggest @username - Get gift suggestions for a friend
 
-Birthday Management:
-/setbirthday YYYY-MM-DD - Set your birthday
+Birthday Management (Using Jalali Calendar):
+/setbirthday YYYY-MM-DD - Set your birthday (Example: 1370-06-15)
 /birthday - See your birthday
-/upcoming - See upcoming birthdays in the next 7 days
+
+Watchlist Management:
+/watch @username - Add someone to your watchlist
+/unwatch @username - Remove someone from your watchlist
+/watchlist - See your watchlist
 
 Other Commands:
 /stats - See bot statistics
@@ -95,6 +112,13 @@ Other Commands:
     // Other commands
     bot.onText(/\/stats/, (msg) => statsHandler(msg, bot));
     bot.onText(/\/broadcast (.+)/, (msg) => broadcastHandler(msg, bot));
+
+    // Set up periodic birthday reminder check (every hour)
+    setInterval(() => {
+      sendBirthdayReminders(bot).catch(error => {
+        console.error('Error in birthday reminder interval:', error);
+      });
+    }, 60 * 60 * 1000); // 1 hour in milliseconds
 
     // Error handling
     bot.on('polling_error', (error) => {

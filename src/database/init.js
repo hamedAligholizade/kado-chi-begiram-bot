@@ -45,6 +45,30 @@ const initDatabase = async () => {
           );
         `);
 
+        // Create watchlist table
+        await client.query(`
+          CREATE TABLE IF NOT EXISTS watchlist (
+            id SERIAL PRIMARY KEY,
+            watcher_id BIGINT REFERENCES users(user_id),
+            watched_id BIGINT REFERENCES users(user_id),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(watcher_id, watched_id)
+          );
+        `);
+
+        // Create reminder_logs table to prevent duplicate reminders
+        await client.query(`
+          CREATE TABLE IF NOT EXISTS reminder_logs (
+            id SERIAL PRIMARY KEY,
+            watcher_id BIGINT REFERENCES users(user_id),
+            watched_id BIGINT REFERENCES users(user_id),
+            reminder_type VARCHAR(20), -- 'two_week', 'one_week', 'three_day'
+            birthday_year INT,
+            sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(watcher_id, watched_id, reminder_type, birthday_year)
+          );
+        `);
+
         console.log('Database initialized successfully');
         break;
       } finally {
