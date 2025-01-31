@@ -12,6 +12,12 @@ const saveUser = async (userId, username, firstName, lastName, botName) => {
   await pool.query(query, [userId, username, firstName, lastName, botName]);
 };
 
+const getUserById = async (userId) => {
+  const query = 'SELECT user_id, username, first_name, last_name FROM users WHERE user_id = $1';
+  const result = await pool.query(query, [userId]);
+  return result.rows[0];
+};
+
 // Birthday related queries
 const setBirthday = async (userId, birthDate) => {
   const query = `
@@ -191,6 +197,7 @@ const getUserByUsername = async (username) => {
 
 module.exports = {
   saveUser,
+  getUserById,
   setBirthday,
   getBirthday,
   addGiftPreference,

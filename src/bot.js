@@ -20,6 +20,10 @@ const {
   listWatchlistHandler,
   sendBirthdayReminders
 } = require('./commands/watchlist');
+const {
+  supportHandler,
+  replyToUserHandler
+} = require('./commands/support');
 
 async function startBot() {
   try {
@@ -37,32 +41,33 @@ async function startBot() {
       try {
         await queries.saveUser(userId, username, first_name, last_name, botName);
         const welcomeMessage = `
-Welcome to the Gift & Birthday Bot! 👋
+👋 به ربات هدیه و تولد خوش آمدید!
 
-Here are the available commands:
+دستورات موجود:
 
-Gift Management:
-/addgift item name | description - Add an item you'd like to receive
-/removegift item name - Remove an item from your list
-/listgifts - See your gift preferences
-/suggest @username - Get gift suggestions for a friend
+مدیریت هدایا:
+/addgift نام هدیه | توضیحات - افزودن هدیه به لیست علاقه‌مندی‌ها
+/removegift نام هدیه - حذف هدیه از لیست
+/listgifts - مشاهده لیست هدایای مورد علاقه شما
+/suggest @username - دریافت پیشنهادات هدیه برای دوستان
 
-Birthday Management (Using Jalali Calendar):
-/setbirthday YYYY-MM-DD - Set your birthday (Example: 1370-06-15)
-/birthday - See your birthday
+مدیریت تاریخ تولد (تقویم شمسی):
+/setbirthday YYYY-MM-DD - تنظیم تاریخ تولد (مثال: 1370-06-15)
+/birthday - مشاهده تاریخ تولد شما
 
-Watchlist Management:
-/watch @username - Add someone to your watchlist
-/unwatch @username - Remove someone from your watchlist
-/watchlist - See your watchlist
+مدیریت لیست دنبال‌شوندگان:
+/watch @username - افزودن کاربر به لیست دنبال‌شوندگان
+/unwatch @username - حذف کاربر از لیست دنبال‌شوندگان
+/watchlist - مشاهده لیست دنبال‌شوندگان
 
-Other Commands:
-/help - Show this help message
+سایر دستورات:
+/help - نمایش این راهنما
+/support پیام - ارسال پیام به پشتیبانی
 `;
         await bot.sendMessage(msg.chat.id, welcomeMessage);
       } catch (error) {
         console.error('Error saving user:', error);
-        await bot.sendMessage(msg.chat.id, 'An error occurred while processing your request.');
+        await bot.sendMessage(msg.chat.id, 'متأسفانه در ثبت اطلاعات مشکلی پیش آمد. لطفا دوباره تلاش کنید.');
       }
     });
 
@@ -81,29 +86,33 @@ Other Commands:
     bot.onText(/\/unwatch (.+)/, (msg, match) => removeFromWatchlistHandler(msg, bot, match));
     bot.onText(/\/watchlist/, (msg) => listWatchlistHandler(msg, bot));
 
+    // Support commands
+    bot.onText(/\/support (.+)/, (msg, match) => supportHandler(msg, bot, match));
+    bot.onText(/\/reply (.+)/, (msg, match) => replyToUserHandler(msg, bot, match));
+
     // Help command
     bot.onText(/\/help/, async (msg) => {
       const helpMessage = `
-Here are the available commands:
+دستورات موجود:
 
-Gift Management:
-/addgift item name | description - Add an item you'd like to receive
-/removegift item name - Remove an item from your list
-/listgifts - See your gift preferences
-/suggest @username - Get gift suggestions for a friend
+مدیریت هدایا:
+/addgift نام هدیه | توضیحات - افزودن هدیه به لیست علاقه‌مندی‌ها
+/removegift نام هدیه - حذف هدیه از لیست
+/listgifts - مشاهده لیست هدایای مورد علاقه شما
+/suggest @username - دریافت پیشنهادات هدیه برای دوستان
 
-Birthday Management (Using Jalali Calendar):
-/setbirthday YYYY-MM-DD - Set your birthday (Example: 1370-06-15)
-/birthday - See your birthday
+مدیریت تاریخ تولد (تقویم شمسی):
+/setbirthday YYYY-MM-DD - تنظیم تاریخ تولد (مثال: 1370-06-15)
+/birthday - مشاهده تاریخ تولد شما
 
-Watchlist Management:
-/watch @username - Add someone to your watchlist
-/unwatch @username - Remove someone from your watchlist
-/watchlist - See your watchlist
+مدیریت لیست دنبال‌شوندگان:
+/watch @username - افزودن کاربر به لیست دنبال‌شوندگان
+/unwatch @username - حذف کاربر از لیست دنبال‌شوندگان
+/watchlist - مشاهده لیست دنبال‌شوندگان
 
-Other Commands:
-/stats - See bot statistics
-/help - Show this help message
+سایر دستورات:
+/help - نمایش این راهنما
+/support پیام - ارسال پیام به پشتیبانی
 `;
       await bot.sendMessage(msg.chat.id, helpMessage);
     });

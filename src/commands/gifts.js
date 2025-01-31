@@ -7,14 +7,14 @@ const addGiftHandler = async (msg, bot, match) => {
     
     if (!itemName) {
       return bot.sendMessage(msg.chat.id, 
-        'Please provide an item name. Usage: /addgift item name | optional description');
+        'لطفا نام هدیه را وارد کنید. مثال: /addgift نام هدیه | توضیحات (اختیاری)');
     }
 
     await queries.addGiftPreference(userId, itemName, description || null);
-    await bot.sendMessage(msg.chat.id, `Added "${itemName}" to your gift preferences! 🎁`);
+    await bot.sendMessage(msg.chat.id, `✅ "${itemName}" به لیست هدایای مورد علاقه شما اضافه شد!`);
   } catch (error) {
     console.error('Error in addGift:', error);
-    await bot.sendMessage(msg.chat.id, 'Sorry, there was an error processing your request.');
+    await bot.sendMessage(msg.chat.id, 'متأسفانه در افزودن هدیه مشکلی پیش آمد. لطفا دوباره تلاش کنید.');
   }
 };
 
@@ -25,14 +25,14 @@ const removeGiftHandler = async (msg, bot, match) => {
     
     if (!itemName) {
       return bot.sendMessage(msg.chat.id, 
-        'Please provide an item name to remove. Usage: /removegift item name');
+        'لطفا نام هدیه را وارد کنید. مثال: /removegift نام هدیه');
     }
 
     await queries.removeGiftPreference(userId, itemName);
-    await bot.sendMessage(msg.chat.id, `Removed "${itemName}" from your gift preferences! ✅`);
+    await bot.sendMessage(msg.chat.id, `✅ "${itemName}" از لیست هدایای مورد علاقه شما حذف شد.`);
   } catch (error) {
     console.error('Error in removeGift:', error);
-    await bot.sendMessage(msg.chat.id, 'Sorry, there was an error processing your request.');
+    await bot.sendMessage(msg.chat.id, 'متأسفانه در حذف هدیه مشکلی پیش آمد. لطفا دوباره تلاش کنید.');
   }
 };
 
@@ -43,7 +43,7 @@ const listGiftsHandler = async (msg, bot) => {
     
     if (!preferences.length) {
       return bot.sendMessage(msg.chat.id, 
-        'You haven\'t added any gift preferences yet. Use /addgift to add some!');
+        'شما هنوز هیچ هدیه‌ای به لیست اضافه نکرده‌اید. برای افزودن از دستور /addgift استفاده کنید!');
     }
 
     const message = preferences
@@ -53,10 +53,10 @@ const listGiftsHandler = async (msg, bot) => {
       .join('\n');
 
     await bot.sendMessage(msg.chat.id, 
-      '🎁 Your gift preferences:\n\n' + message);
+      '🎁 لیست هدایای مورد علاقه شما:\n\n' + message);
   } catch (error) {
     console.error('Error in listGifts:', error);
-    await bot.sendMessage(msg.chat.id, 'Sorry, there was an error processing your request.');
+    await bot.sendMessage(msg.chat.id, 'متأسفانه در نمایش لیست هدایا مشکلی پیش آمد. لطفا دوباره تلاش کنید.');
   }
 };
 
@@ -66,7 +66,7 @@ const suggestGiftsHandler = async (msg, bot, match) => {
     
     if (!username) {
       return bot.sendMessage(msg.chat.id, 
-        'Please provide a username. Usage: /suggest @username');
+        'لطفا نام کاربری را وارد کنید. مثال: /suggest @username');
     }
 
     const cleanUsername = username.replace('@', '');
@@ -74,14 +74,14 @@ const suggestGiftsHandler = async (msg, bot, match) => {
     
     if (!user) {
       return bot.sendMessage(msg.chat.id, 
-        'User not found. Make sure they have interacted with the bot!');
+        'کاربر مورد نظر پیدا نشد. لطفا مطمئن شوید که کاربر با ربات تعامل داشته است!');
     }
 
     const preferences = await queries.getUserGiftPreferences(user.user_id);
     
     if (!preferences.length) {
       return bot.sendMessage(msg.chat.id, 
-        `${username} hasn't added any gift preferences yet!`);
+        `${username} هنوز هیچ هدیه‌ای به لیست خود اضافه نکرده است!`);
     }
 
     const message = preferences
@@ -91,10 +91,10 @@ const suggestGiftsHandler = async (msg, bot, match) => {
       .join('\n');
 
     await bot.sendMessage(msg.chat.id, 
-      `🎁 Gift suggestions for ${username}:\n\n${message}`);
+      `🎁 پیشنهادات هدیه برای ${username}:\n\n${message}`);
   } catch (error) {
     console.error('Error in suggestGifts:', error);
-    await bot.sendMessage(msg.chat.id, 'Sorry, there was an error processing your request.');
+    await bot.sendMessage(msg.chat.id, 'متأسفانه در دریافت لیست هدایا مشکلی پیش آمد. لطفا دوباره تلاش کنید.');
   }
 };
 
