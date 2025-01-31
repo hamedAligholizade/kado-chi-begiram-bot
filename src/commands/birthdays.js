@@ -13,17 +13,44 @@ const setBirthdayHandler = async (msg, bot, match) => {
 
     // Validate Jalali date format
     const [year, month, day] = dateStr.split('-').map(Number);
-    if (!moment.jIsValidJalaaliDate(year, month, day)) {
+    
+    // Check if the date components are valid numbers
+    if (isNaN(year) || isNaN(month) || isNaN(day)) {
       return bot.sendMessage(msg.chat.id, 
-        'Invalid Jalali date format. Please use YYYY-MM-DD format. Example: /setbirthday 1370-06-15');
+        'Invalid date format. Please use YYYY-MM-DD format. Example: /setbirthday 1370-06-15');
+    }
+
+    // Create a moment object with the Jalali date
+    const jDate = moment(`${year}-${month}-${day}`, 'jYYYY-jMM-jDD');
+    
+    // Check if it's a valid Jalali date
+    if (!jDate.isValid()) {
+      return bot.sendMessage(msg.chat.id, 
+        'Invalid Jalali date. Please enter a valid date. Example: /setbirthday 1370-06-15');
+    }
+
+    // Additional validation for reasonable date ranges
+    if (year < 1300 || year > 1420) {
+      return bot.sendMessage(msg.chat.id, 
+        'Please enter a reasonable year between 1300 and 1420.');
+    }
+
+    if (month < 1 || month > 12) {
+      return bot.sendMessage(msg.chat.id, 
+        'Month should be between 1 and 12.');
+    }
+
+    if (day < 1 || day > 31 || (month <= 6 && day > 31) || (month > 6 && day > 30) || (month === 12 && day > 29)) {
+      return bot.sendMessage(msg.chat.id, 
+        'Invalid day for the given month in Jalali calendar.');
     }
 
     // Convert Jalali to Gregorian for storage
-    const gregorianDate = moment(`${year}-${month}-${day}`, 'jYYYY-jMM-jDD').format('YYYY-MM-DD');
+    const gregorianDate = jDate.format('YYYY-MM-DD');
     await queries.setBirthday(userId, gregorianDate);
     
     // Format the Jalali date for display
-    const formattedDate = moment(gregorianDate).format('jDD jMMMM jYYYY');
+    const formattedDate = jDate.format('jDD jMMMM jYYYY');
     await bot.sendMessage(msg.chat.id, `🎂 Your birthday has been set to: ${formattedDate}`);
   } catch (error) {
     console.error('Error in setBirthday:', error);

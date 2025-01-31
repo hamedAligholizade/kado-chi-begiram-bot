@@ -57,7 +57,6 @@ Watchlist Management:
 /watchlist - See your watchlist
 
 Other Commands:
-/stats - See bot statistics
 /help - Show this help message
 `;
         await bot.sendMessage(msg.chat.id, welcomeMessage);
