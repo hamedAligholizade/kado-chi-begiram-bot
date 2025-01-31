@@ -1,4 +1,5 @@
 const { pool } = require('./init');
+const moment = require('moment-jalaali');
 
 // User related queries
 const saveUser = async (userId, username, firstName, lastName, botName) => {
@@ -78,55 +79,78 @@ const getWatchlist = async (watcherId) => {
 };
 
 const getBirthdayReminders = async () => {
+  // First, get all watchlist entries with birthdays
   const query = `
-    WITH upcoming_birthdays AS (
-      SELECT 
-        w.watcher_id,
-        w.watched_id,
-        u.username as watched_username,
-        u.first_name as watched_firstname,
-        b.birth_date,
-        EXTRACT(YEAR FROM CURRENT_DATE) as current_year,
-        (
-          DATE(
-            EXTRACT(YEAR FROM CURRENT_DATE) || 
-            '-' || 
-            EXTRACT(MONTH FROM b.birth_date) || 
-            '-' || 
-            EXTRACT(DAY FROM b.birth_date)
-          ) - CURRENT_DATE
-        ) as days_until_birthday
-      FROM watchlist w
-      JOIN users u ON w.watched_id = u.user_id
-      JOIN birthdays b ON w.watched_id = b.user_id
-    )
     SELECT 
-      ub.*,
-      u.user_id as watcher_user_id,
-      CASE 
-        WHEN days_until_birthday = 14 THEN 'two_week'
-        WHEN days_until_birthday = 7 THEN 'one_week'
-        WHEN days_until_birthday = 3 THEN 'three_day'
-      END as reminder_type
-    FROM upcoming_birthdays ub
-    JOIN users u ON ub.watcher_id = u.user_id
-    WHERE days_until_birthday IN (14, 7, 3)
-    AND NOT EXISTS (
-      SELECT 1 FROM reminder_logs rl
-      WHERE rl.watcher_id = ub.watcher_id
-      AND rl.watched_id = ub.watched_id
-      AND rl.reminder_type = (
-        CASE 
-          WHEN days_until_birthday = 14 THEN 'two_week'
-          WHEN days_until_birthday = 7 THEN 'one_week'
-          WHEN days_until_birthday = 3 THEN 'three_day'
-        END
-      )
-      AND rl.birthday_year = EXTRACT(YEAR FROM CURRENT_DATE)
-    )
+      w.watcher_id,
+      w.watched_id,
+      u.username as watched_username,
+      u.first_name as watched_firstname,
+      b.birth_date
+    FROM watchlist w
+    JOIN users u ON w.watched_id = u.user_id
+    JOIN birthdays b ON w.watched_id = b.user_id
   `;
+  
   const result = await pool.query(query);
-  return result.rows;
+  const currentDate = moment();
+  const remindersToSend = [];
+
+  // Process each birthday and calculate days until next birthday in Jalali calendar
+  for (const row of result.rows) {
+    const birthDate = moment(row.birth_date);
+    const birthDateJalali = moment(row.birth_date).format('jMM-jDD');
+    const [birthMonth, birthDay] = birthDateJalali.split('-').map(Number);
+    
+    // Get current Jalali date
+    const currentYear = parseInt(currentDate.format('jYYYY'));
+    const currentMonth = parseInt(currentDate.format('jMM'));
+    const currentDay = parseInt(currentDate.format('jDD'));
+
+    // Calculate next birthday in Jalali calendar
+    let nextBirthdayYear = currentYear;
+    if (birthMonth < currentMonth || (birthMonth === currentMonth && birthDay < currentDay)) {
+      nextBirthdayYear++;
+    }
+
+    // Convert next birthday to Gregorian for day calculation
+    const nextBirthday = moment(`${nextBirthdayYear}-${birthMonth}-${birthDay}`, 'jYYYY-jMM-jDD');
+    const daysUntilBirthday = nextBirthday.diff(currentDate, 'days');
+
+    // Check if this birthday needs a reminder
+    if ([14, 7, 3].includes(daysUntilBirthday)) {
+      const reminderType = 
+        daysUntilBirthday === 14 ? 'two_week' :
+        daysUntilBirthday === 7 ? 'one_week' : 'three_day';
+
+      // Check if reminder has already been sent this year
+      const reminderQuery = `
+        SELECT 1 FROM reminder_logs
+        WHERE watcher_id = $1
+        AND watched_id = $2
+        AND reminder_type = $3
+        AND birthday_year = $4
+      `;
+      const reminderResult = await pool.query(reminderQuery, [
+        row.watcher_id,
+        row.watched_id,
+        reminderType,
+        nextBirthdayYear
+      ]);
+
+      if (!reminderResult.rows.length) {
+        remindersToSend.push({
+          ...row,
+          days_until_birthday: daysUntilBirthday,
+          reminder_type: reminderType,
+          current_year: nextBirthdayYear,
+          watcher_user_id: row.watcher_id
+        });
+      }
+    }
+  }
+
+  return remindersToSend;
 };
 
 const logReminder = async (watcherId, watchedId, reminderType, birthdayYear) => {
@@ -165,7 +189,7 @@ const getUserByUsername = async (username) => {
   return result.rows[0];
 };
 
-const queries = {
+module.exports = {
   saveUser,
   setBirthday,
   getBirthday,
@@ -178,6 +202,23 @@ const queries = {
   getWatchlist,
   getBirthdayReminders,
   logReminder,
-
   async getStats() {
     const query = `
+      SELECT 
+        COUNT(*) as total_users,
+        COUNT(DISTINCT bot_name) as total_bots,
+        DATE_TRUNC('day', created_at) as date,
+        COUNT(*) as users_per_day
+      FROM users
+      GROUP BY DATE_TRUNC('day', created_at)
+      ORDER BY date DESC
+    `;
+    const result = await pool.query(query);
+    return result.rows;
+  },
+  async getAllUsers() {
+    const query = 'SELECT user_id FROM users';
+    const result = await pool.query(query);
+    return result.rows;
+  }
+};
