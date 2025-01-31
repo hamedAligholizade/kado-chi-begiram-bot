@@ -11,6 +11,7 @@ const initDatabase = async () => {
     try {
       const client = await pool.connect();
       try {
+        // Create users table
         await client.query(`
           CREATE TABLE IF NOT EXISTS users (
             user_id BIGINT PRIMARY KEY,
@@ -21,6 +22,29 @@ const initDatabase = async () => {
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
           );
         `);
+
+        // Create birthdays table
+        await client.query(`
+          CREATE TABLE IF NOT EXISTS birthdays (
+            user_id BIGINT PRIMARY KEY REFERENCES users(user_id),
+            birth_date DATE NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          );
+        `);
+
+        // Create gift preferences table
+        await client.query(`
+          CREATE TABLE IF NOT EXISTS gift_preferences (
+            id SERIAL PRIMARY KEY,
+            user_id BIGINT REFERENCES users(user_id),
+            item_name VARCHAR(255) NOT NULL,
+            description TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(user_id, item_name)
+          );
+        `);
+
         console.log('Database initialized successfully');
         break;
       } finally {
